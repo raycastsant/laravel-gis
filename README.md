@@ -72,13 +72,13 @@ You will first need to install docker and docker-compose on your development mac
 
 First, let's create a new Laravel application using composer. If composer is installed on your development host, you can use it directly. Otherwise, you can use the compose Docker official image to do it:
 
-# This command runs the official composer image in interactive mode (--interactive) 
-# in a pseudo-TTY (--tty) 
-# with the current directory mapped to /app in the container (--volume $PWD:/app) 
-# with the current user context (--user $(id -u):$(id -g)).
-# It runs the composer command: "composer create-project laravel/laravel laravel-gis"
-# which will install Laravel with composer in a directory called larave-gis
-# The --rm flag will remove the container once the command as finished
+This command runs the official composer image in interactive mode (--interactive) 
+in a pseudo-TTY (--tty) 
+with the current directory mapped to /app in the container (--volume $PWD:/app) 
+with the current user context (--user $(id -u):$(id -g)).
+It runs the composer command: "composer create-project laravel/laravel laravel-gis"
+which will install Laravel with composer in a directory called larave-gis
+The --rm flag will remove the container once the command as finished
 
 docker run --rm --interactive --tty \
 	--volume $PWD:/app \
@@ -101,24 +101,24 @@ networks:
     frontend:
     backend:
 services:
-# nginx proxy service (based on nginx official image) to act as a web server and proxy server
+### nginx proxy service (based on nginx official image) to act as a web server and proxy server
     proxy:
         image: nginx:latest
-# map local port 8080 to containers's port 80
+### map local port 8080 to containers's port 80
 		ports:
             - "8080:80"
-# map the current directory to /var/www/app in the container
-# and map our the nginx-site.conf to the nginx default site in the container
+### map the current directory to /var/www/app in the container
+### and map our the nginx-site.conf to the nginx default site in the container
         volumes:
             - ./:/var/www/app
             - ./docker/nginx/nginx-site.conf:/etc/nginx/conf.d/default.conf
         networks:
             - frontend
             - backend
-# php-fpm service (based on php official image) to process our php code 
+### php-fpm service (based on php official image) to process our php code 
 	php:
         image: php:8.1-fpm
-# map the current directory to /var/www/app in the container (the same as for the proxy service)
+### map the current directory to /var/www/app in the container (the same as for the proxy service)
         volumes:
             - ./:/var/www/app
         networks:
@@ -127,18 +127,18 @@ Put the following content in the docker/nginx/nginx-site.conf file:
 
 server {
     listen 80;
-# our root directory points to the public Laravel directory
+### our root directory points to the public Laravel directory
     root /var/www/app/public;
     index index.php;
     server_name _;
 		
-# Redirects all queries to routes without extension (/dashboard for instance) to their
-# equivalents but with a trailing /index.php (/dashboard/index.php) so it hits the next location
+### Redirects all queries to routes without extension (/dashboard for instance) to their
+### equivalents but with a trailing /index.php (/dashboard/index.php) so it hits the next location
     location / {
          try_files $uri $uri/ /index.php$is_args$args;
     }
 		
-# Sends all php queries to the php container (named php in our case) on port 9000
+### Sends all php queries to the php container (named php in our case) on port 9000
     location ~ \.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
@@ -150,6 +150,7 @@ server {
     }
 }
 Run "docker-compose up" and go to http://localhost:8080 in your browser; you should see the blank laravel welcome page confirming that everything is working properly:
+https://github.com/raycastsant/assets/blob/main/a659f575-5958-4536-9534-13d258dfdedd.png
 
 (windows tip for windows port issues)
 net stop winnat
