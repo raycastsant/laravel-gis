@@ -1,0 +1,27 @@
+version: "3.7"
+networks:
+    frontend:
+    backend:
+services:
+    # nginx proxy service (based on nginx official image) to act as a web server and proxy server
+    proxy:
+        image: nginx:latest
+        # map local port 8080 to containers's port 80
+        ports:
+            - "8080:80"
+        # map the current directory to /var/www/app in the container
+        # and map our the nginx-site.conf to the nginx default site in the container
+        volumes:
+            - ./:/var/www/app:rw
+            - ./docker/nginx/nginx-site.conf:/etc/nginx/conf.d/default.conf
+        networks:
+            - frontend
+            - backend
+    # php-fpm service (based on php official image) to process our php code
+    php:
+        image: php:8.2-fpm
+        # map the current directory to /var/www/app in the container (the same as for the proxy service)
+        volumes:
+            - ./:/var/www/app
+        networks:
+            - backend
