@@ -19,7 +19,12 @@ services:
             - backend
     # php-fpm service (based on php official image) to process our php code
     php:
-        image: php:8.2-fpm
+        # image: php:8.2-fpm
+        # give docker the build context, docker file and image name and tag
+        build:
+            context: ./docker/php
+            dockerfile: Dockerfile
+        image: laravelgis-php:latest
         # map the current directory to /var/www/app in the container (the same as for the proxy service)
         volumes:
             - ./:/var/www/app

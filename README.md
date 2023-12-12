@@ -96,6 +96,7 @@ We use some pretty dangerous permission settings here. Still, it's a development
 
 We will need two docker services to get our environment working with php-fpm and nginx; create two services in the docker-compose.yml file:
 
+```
 version: "3.7"
 networks:
     frontend:
@@ -123,8 +124,11 @@ services:
             - ./:/var/www/app
         networks:
             - backend
+```
+
 Put the following content in the docker/nginx/nginx-site.conf file:
 
+```
 server {
     listen 80;
 ### our root directory points to the public Laravel directory
@@ -149,10 +153,89 @@ server {
         fastcgi_param PATH_INFO $fastcgi_path_info;
     }
 }
+```
+
 Run "docker-compose up" and go to http://localhost:8080 in your browser; you should see the blank laravel welcome page confirming that everything is working properly:
-https://github.com/raycastsant/assets/blob/main/a659f575-5958-4536-9534-13d258dfdedd.png
+
+<img src="https://github.com/raycastsant/assets/blob/main/a659f575-5958-4536-9534-13d258dfdedd.png" alt="Running Laravel with docker">
+
 
 (windows tip for windows port issues)
 net stop winnat
 docker start container_name
 net start winnat
+
+We now have a php-fpm official docker image running our PHP and served through an Nginx proxy. However, we will need a few extra PHP extensions to run Laravel and Postgres. We will need to build our own PHP image based on the official one to do so. We will also install npm (nodejs) and composer in the development image. "Luckily," this can be achieved with a "simple" single one-liner in the Dockerfile.
+
+Create a new folder called docker/php and a new file called Dockerfile in it:
+```
+mkdir docker/php
+touch docker/php/Dockerfile
+```
+
+Put the following content in the file:
+```
+# php official fpm image
+FROM php:8.1-fpm
+
+# installs basic tools, then postgres ppa then nodejs ppa then nodejs and postgresql-client packages 
+# (and some other required dependencies). It then installs and configures several php extensions 
+# including pdo_pgsql and redis. Finally, it downloads and installs composer in the image.
+RUN apt-get update \
+    && apt-get install -y gnupg curl wget ca-certificates unzip lsb-release \
+    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee  /etc/apt/sources.list.d/pgdg.list \
+    && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y \
+        libicu-dev \
+        libpq-dev \
+        libzip-dev \
+        nodejs \
+        postgresql-client-14 \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install intl pdo pdo_pgsql pgsql zip bcmath pcntl exif \
+    && php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer \
+    && npm install -g npm \
+    && apt-get -y autoremove \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && chown -R www-data:www-data /var/www
+
+WORKDIR /var/www/app
+USER www-data
+```
+
+Now, let's make a few changes to our docker-compose.yml file:
+```
+version: "3.7"
+networks:
+    frontend:
+    backend:
+services:
+    proxy:
+        image: nginx:latest
+        ports:
+            - "8080:80"
+        volumes:
+            - ./:/var/www/app
+            - ./docker/nginx/nginx-site.conf:/etc/nginx/conf.d/default.conf
+        networks:
+            - frontend
+            - backend
+    php:		
+    # give docker the build context, docker file and image name and tag
+  		build:
+  			context: ./docker/php
+  			dockerfile: Dockerfile
+  		image: laravelgis-php:latest
+        volumes:
+            - ./:/var/www/app
+        networks:
+            - backend
+```
+
+We can now run "docker-compose build" and see if our image compiles correctly; the process of building the new image can take a few minutes.
+
+Run "docker-compose up" again and browse to http://localhost:8080 to make sure everything is still running correctly
