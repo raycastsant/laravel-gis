@@ -239,3 +239,19 @@ services:
 We can now run "docker-compose build" and see if our image compiles correctly; the process of building the new image can take a few minutes.
 
 Run "docker-compose up" again and browse to http://localhost:8080 to make sure everything is still running correctly
+
+#INSTALLING POSTGRESQL, REDIS AND LARAVEL JETSTREAM
+
+Run
+docker exec -it laravel-gis-php-1 php artisan migrate
+docker exec -it laravel-gis-php-1 npm install
+
+Finally, we will install Laravel Jetstream which will provide us with a terrific authentication boilerplate and most of the libraries we will use (Laravel Livewire, Alpine.js and Tailwind CSS):
+
+docker exec -it laravel-gis-php-1 composer require laravel/jetstream
+docker exec -it laravel-gis-php-1 php artisan jetstream:install livewire
+docker exec -it laravel-gis-php-1 npm install
+docker exec -it laravel-gis-php-1 npm run build
+docker exec -it laravel-gis-php-1 php artisan migrate
+
+We now have a fully functional Laravel / php development environment running in docker with Postgres as a database and Redis as a cache repository

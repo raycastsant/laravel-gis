@@ -1,32 +1,50 @@
 version: "3.7"
+volumes:
+    postgres-data:
+    redis-data:
 networks:
     frontend:
     backend:
 services:
-    # nginx proxy service (based on nginx official image) to act as a web server and proxy server
     proxy:
         image: nginx:latest
-        # map local port 8080 to containers's port 80
         ports:
             - "8080:80"
-        # map the current directory to /var/www/app in the container
-        # and map our the nginx-site.conf to the nginx default site in the container
         volumes:
-            - ./:/var/www/app:rw
+            - ./:/var/www/app
             - ./docker/nginx/nginx-site.conf:/etc/nginx/conf.d/default.conf
         networks:
             - frontend
             - backend
-    # php-fpm service (based on php official image) to process our php code
     php:
-        # image: php:8.2-fpm
-        # give docker the build context, docker file and image name and tag
         build:
             context: ./docker/php
             dockerfile: Dockerfile
         image: laravelgis-php:latest
-        # map the current directory to /var/www/app in the container (the same as for the proxy service)
         volumes:
             - ./:/var/www/app
+        networks:
+            - backend
+    postgres:
+        image: postgres:latest
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_PASSWORD: 12345
+            POSTGRES_USER: laravelgis
+            POSTGRES_DB: laravelgis
+            PGDATA: /var/lib/postgresql/data
+        networks:
+            - backend
+    redis:
+        image: redis:latest
+        sysctls:
+            - net.core.somaxconn=511
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis-data:/data
         networks:
             - backend
